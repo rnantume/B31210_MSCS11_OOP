@@ -4,7 +4,7 @@ import datetime
 class Person:
     """
     Represents a person that could be either a donor or refugee with the attributes below:
-    id(int): uniquely identified,
+    id(str): uniquely identified,
     name(str),
     contact(str),
     address(str)
@@ -51,37 +51,57 @@ class Refugee(Person):
         return _details
 
 class Unit:
-    """"""
-    id = ""
-    name = ""
-    quantity_per_family_member = 0
+    """
+    Represents the quantity per foot type allocated per family member.
+    Attributes:
+    id (str): Unique identifier for the unit.
+    name(str): Name of the food.
+    quantity_per_family_member(int): Quantity of food allocated per family member.
+    Methods:
+    get_unit_cap(): returns the quantity allocated per family member.
+    """
     def __init__(self, _name, _quantity_per_family_member) -> None:
         self.id = str(uuid.uuid1())
         self.name = _name
         self.quantity_per_family_member = _quantity_per_family_member
     
-    def get_name(self):
-        return self.name
+    #def get_name(self):
+    #    return self.name
     
     def get_unit_cap(self):
         return self.quantity_per_family_member
 
 class Food:
-    """"""
-    id = ""
-    name = ""
-
+    """
+    Represents a food item in the foodbank with attributes below:
+    - id: Unique identifier od food item
+    - name: Name of the food item (e.g., Rice, Beans)
+    - unit: Unit of release for this food item, which must be an instance of Unit class)
+    """
     def __init__(self, _name, _unit) -> None:
         self.id = str(uuid.uuid1())
         self.name = _name
-        self.unit = _unit
+        self.unit = _unit   #_unit is an instance of Unit class
         if not isinstance(_unit, Unit):
-            raise TypeError("variable '_unit' must be of type 'Unit")
-    
-    def get_details(self):
-        #return "Name: " + self.name + ", Contact: " + self.unit + ", Address: " + self.address
-        pass
+            raise TypeError("variable '_unit' must be of type 'Unit'")
         
+    @property
+    def unit(self):
+        """Getter for unit."""
+        return self._unit
+    
+    @unit.setter
+    def unit(self, _unit):
+        """Setter for unit with validation."""
+        if not isinstance(_unit, Unit):
+            raise TypeError("Argument '_unit' must be of type 'Unit'")
+        self._unit = _unit
+
+    def get_details(self):
+        """Returns food details."""
+        unit_qty = self.unit.get_unit_cap()
+        return f"Food ID: {self.id}, Food Name: {self.name}, Unit of Release: {unit_qty}"
+         
 class Supply:
     id = ""
     quantity = 0
