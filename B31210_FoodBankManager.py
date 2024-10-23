@@ -2,40 +2,44 @@ import uuid
 import datetime
 
 class Person:
-    """"""
-    id = ""
-    name = ""
-    contact = ""
-    address = ""
-
+    """
+    Represents a person that could be either a donor or refugee with the attributes below:
+    id(int): uniquely identified,
+    name(str),
+    contact(str),
+    address(str)
+    """
     def __init__(self, _name, _contact, _address) -> None:
         self.id = str(uuid.uuid1())
         self.name = _name
         self.contact = _contact
         self.address = _address
-
+    
     def get_details(self):
-        return "Name: " + self.name + ", Contact: " + self.contact + ", Address: " + self.address
-
-
+        """returns details abour a person"""
+        return f"ID: {self.id}, Name: {self.name}, Contact No: {self.contact}, Address: {self.address}"
+    
 class Donor(Person):
-    """"""
-    is_organisation = False
-
+    """
+    Represents a donor, who inherits from Person
+    Donor has additional attributes: is_organisation(boolean)
+    """
     def __init__(self, _name, _contact, _address, _is_organisation) -> None:
         super().__init__(_name, _contact, _address)
         self.is_organisation = _is_organisation
 
     def get_details(self):
         _details = super().get_details()
-        _details += ", Is Organisation: " + self.is_organisation
-    
+        _details += f", Is Organisation: {str(self.is_organisation)}"
+        return _details
 
 class Refugee(Person):
-    """"""
-    family_size = 1
-    origin_country = ""
-
+    """
+    Represents a refugee, who inherits from Person
+    Refugee has additional attributes: 
+    family_size(int) &
+    origin_country(str)
+    """
     def __init__(self, _name, _contact, _address, _family_size, _origin_country) -> None:
         super().__init__(_name, _contact, _address)
         self.family_size = _family_size
@@ -43,7 +47,8 @@ class Refugee(Person):
 
     def get_details(self):
         _details = super().get_details()
-        _details += ", Family size: " + self.family_size + ", Origin Country" + self.origin_country
+        _details += f", Family size: {self.family_size}, Origin Country: {self.origin_country}"
+        return _details
 
 class Unit:
     """"""
@@ -220,3 +225,6 @@ class Inventory:
         if not isinstance(_person, Person):
             raise TypeError("variable '_person' must be of type 'Person'")
         return True
+    
+
+    person = Person("Robin", "0750111222", "Mukono 1st str")
