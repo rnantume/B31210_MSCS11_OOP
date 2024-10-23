@@ -19,6 +19,10 @@ class Person:
         """returns details abour a person"""
         return f"ID: {self.id}, Name: {self.name}, Contact No: {self.contact}, Address: {self.address}"
     
+    def get_name(self):
+        """Returns the name of the person"""
+        return self.name
+    
 class Donor(Person):
     """
     Represents a donor, who inherits from Person
@@ -65,7 +69,7 @@ class Unit:
         self.name = _name
         self.quantity_per_family_member = _quantity_per_family_member
     
-    #def get_name(self):
+    #def add_to_defined_units()(self):
     #    return self.name
     
     def get_unit_cap(self):
@@ -84,15 +88,16 @@ class Food:
         self.unit = _unit   #_unit is an instance of Unit class
         if not isinstance(_unit, Unit):
             raise TypeError("variable '_unit' must be of type 'Unit'")
-        
+    
+    """This part demonstrate encapsulation"""    
     @property
     def unit(self):
-        """Getter for unit."""
+        """Gets the value for unit."""
         return self._unit
     
     @unit.setter
     def unit(self, _unit):
-        """Setter for unit with validation."""
+        """SSets the value of unit, with validation."""
         if not isinstance(_unit, Unit):
             raise TypeError("Argument '_unit' must be of type 'Unit'")
         self._unit = _unit
@@ -107,30 +112,32 @@ class Supply:
     quantity = 0
     quantity_available = 0
     expiration_date = datetime.datetime.now
+
     def __init__(self, _food_item, _quantity, _expiration_date) -> None:
         if not isinstance(_food_item, Food):
             raise TypeError("variable '_food_item' must be of type 'Food'")
         if not isinstance(_quantity, int):
             raise TypeError("variable '_quantity' must be of type 'int'")
-        if not isinstance(_food_item, Food):
+        if _quantity <= 0:
             raise ValueError("variable '_quantity' must be greater than zero")
         if not isinstance(_expiration_date, datetime.datetime):
-            raise TypeError("variable '_quantity' must be of type 'datetime.datetime'")
+            raise TypeError("variable '_expiration_date' must be of type 'datetime.datetime'")
         
         self.id = str(uuid.uuid1())
         self.food_item = _food_item
         self.quantity = _quantity
+        self.quantity_available = _quantity  # Initialize available quantity to the total quantity
         self.expiration_date = _expiration_date
-    
+
     def add_expire_date(self, _new_expire_date):
         self.expiration_date = _new_expire_date
 
     def is_expired(self):
-        return (self.expiration_date > datetime.datetime.now)   
+        return self.expiration_date < datetime.datetime.now()  # Check if the expiration date has passed
     
     def update_quantity(self, _quantity_used):
-        if self.quantity_available > 0 :
-            if (self.quantity_available - _quantity_used) >= 0 :
+        if self.quantity_available > 0:
+            if (self.quantity_available - _quantity_used) >= 0:
                 self.quantity_available -= _quantity_used
         return self.quantity_available
 
@@ -138,113 +145,115 @@ class Supply:
         return self.quantity_available
 
 class Donation:
-    id = ""
-    delivered_date = datetime.datetime.now
-    supply_list = []
-    def __init__(self, _donor, _supply_list) -> None:
-        if not isinstance(_donor, Donor):
-            raise TypeError("variable '_donor' must be of type 'Donor'")
-        
+    """
+    Represents a donation made to the food bank.
+    Attributes:
+    id (str): Unique identifier od a donation.
+    donor(Donor): The donor who made the donation.
+    supply_list (list): List of supplies in the donation.
+    donation_date(datetime): Date the donation was made.
+    """
+    def __init__(self, _donor, _donation_date, _supply_list=None):
         self.id = str(uuid.uuid1())
         self.donor = _donor
-        self.supply_list = _supply_list
-
+        self.donation_date = _donation_date
+        self.supply_list = _supply_list if _supply_list is not None else []
+        
     def add_donor(self, _donor):
+        """adds new donor"""
         if not isinstance(_donor, Donor):
             raise TypeError("variable '_donor' must be of type 'Donor'")
         self.donor = _donor
 
     def add_supply(self, _supply):
+        """adds a supply to a supply list of a donation"""
         if not isinstance(_supply, Supply):
             raise TypeError("variable '_supply' must be of type 'Supply'")
         self.supply_list.append(_supply)
 
     def get_donation(self):
-        pass
+        """
+        Retrieves details of the donation, including donor, date, and supplies.
+        """
+        return {
+            "id": self.id,
+            "donor": self.donor.get_details(),
+            "donation_date": self.donation_date,
+            "supplies": [supply.food_item.get_details() for supply in self.supply_list]
+        }
 
-        
 class Distribution:
-    """"""
-    id = ""
-    release_date = datetime.datetime.now
-    food_list = []
-    refugee_list = []
-    def __init__(self, _release_date, _food_list, _refugee_list) -> None:
-        if not isinstance(_release_date, datetime.datetime):
-            raise TypeError("variable '_release_date' must be of type 'datetime.datetime'")
+    def __init__(self, release_date, refugees_list=None, food_list=None):
         self.id = str(uuid.uuid1())
-        self.release_date = _release_date
-        self.food_list = _food_list
-        self.refugee_list = _refugee_list
+        self.release_date = release_date
+        self.refugees_list = refugees_list if refugees_list is not None else []
+        self.food_list = food_list if food_list is not None else []
 
-    def add_refugee(self, _refugee):
-         if not isinstance(_refugee, Refugee):
-            raise TypeError("variable '_refugee' must be of type 'Refugee'")   
-         self.refugee_list.append(_refugee)
-    
-    def add_food(self, _food):
-        if not isinstance(_food, Food):
-            raise TypeError("variable '_food' must be of type 'Food'")   
-        self.food_list.append(_food)
+    def add_refugee(self, refugee):
+        """Adds refugee to the list of those receiving food."""
+        if refugee not in self.refugees_list:
+            self.refugees_list.append(refugee)
 
-    def get_details(self):
-        pass
+    def add_food(self, food_item):
+        """Adds food to the distribution list."""
+        self.food_list.append(food_item)
 
+    def distribute(self, inventory):
+        """Distributes food and updates inventory."""
+        # Ensure enough stock is available in the inventory
+        for food_item in self.food_list:
+            available_quantity = inventory.get_stock_count(food_item)
+            if available_quantity < food_item.quantity_needed():
+                raise ValueError(f"Not enough {food_item.name} in stock.")
+            # Release food from inventory
+            inventory.release_food(food_item, food_item.quantity_needed())
+        # Record the distribution
+        inventory.record_distribution(self)
 
-class StockCount:
-    id = ""
-    quantity = 0
-    def __init__(self, _food_item) -> None:
-        if not isinstance(_food_item, Food):
-            raise TypeError("variable '_food_item' must be of type 'Food'")
-        
-        self.id = str(uuid.uuid1())
-        self.food_item = _food_item
-    
-    def get_count(self, _food):
-        if not isinstance(_food, Food):
-            raise TypeError("variable '_food' must be of type 'Food'")
-
-    def set_count(self, _food):
-        if not isinstance(_food, Food):
-            raise TypeError("variable '_food' must be of type 'Food'")
-
-    def get_details(self):
-        pass
-
-      
 class Inventory:
-    """"""
-    id = ""
-    stock_count_list = []
-    store_list = []
-    donation_list = []
-    distribution_list = []
-    release_date = datetime.datetime.now
-    def __init__(self) -> None:
-        self.id = str(uuid.uuid1())
+    def __init__(self):
+        self.supplies_list = []
+        self.distribution_list = []
+        self.donation_list = []
+        self.donors_list = []
+        self.refugees_list = []
 
-    def get_stock_count(self, _food):
-        if not isinstance(_food, Food):
-            raise TypeError("variable '_food' must be of type 'Food'")
+    def get_stock(self):
+        """Displays all food items in stock."""
+        return {supply.food_item.name: supply.quantity_available for supply in self.supplies_list}
+  
+    def get_stock_count(self, food_item):
+        #Returns the available quantity of a specific food item.
+        for supply in self.supplies_list:
+            if supply.food_item.name == food_item.name:
+                return supply.get_quantity_available()
+        return 0
 
-    def get_stock_count_details(self):
-        return ""    
-    
-    def add_donation(self, _donation):
-        if not isinstance(_donation, Donation):
-            raise TypeError("variable '_donation' must be of type 'Donation'")
-        return True
-    
-    def release_distibution(self, _distribution):
-        if not isinstance(_distribution, Distribution):
-            raise TypeError("variable '_distribution' must be of type 'Distribution'")
-        return True
-    
-    def get_history(self, _person):
-        if not isinstance(_person, Person):
-            raise TypeError("variable '_person' must be of type 'Person'")
-        return True
-    
+    def get_stock_count(self):
+        """
+        Returns a dictionary with total available quantity for each food type.
+        """
+        food_totals = {}  # Dictionary to hold the total quantities for each food type
 
-    person = Person("Robin", "0750111222", "Mukono 1st str")
+         # Iterate through each supply in the supplies list
+        for supply in self.supplies_list:
+            food_name = supply.food_item.name  # Get the name of the food item
+            quantity_available = supply.get_quantity_available()  # Get the available quantity of the supply
+        
+            # Add the quantity to the corresponding food type in the dictionary
+            if food_name in food_totals:
+                food_totals[food_name] += quantity_available  # If food already exists, add to the total
+            else:
+                food_totals[food_name] = quantity_available  # If food doesn't exist, set initial value
+    
+        return food_totals  # Return the dictionary with food totals
+
+    def release_food(self, food_item, quantity_needed):
+        """Reduces the quantity of a specific food item in stock."""
+        for supply in self.supplies_list:
+            if supply.food_item.name == food_item.name:
+                supply.update_quantity(quantity_needed)
+
+    def record_distribution(self, distribution):
+        """Records the distribution event."""
+        self.distribution_list.append(distribution)
