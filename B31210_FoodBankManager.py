@@ -206,11 +206,12 @@ class Distribution:
         """Distributes food and updates inventory."""
         # Ensure enough stock is available in the inventory
         for food_item in self.food_list:
+            num_refugees = inventory.get_total_refugees()
             available_quantity = inventory.get_stock_count(food_item)
-            if available_quantity < food_item.quantity_needed_for_distribution(len(self.refugees_list)):
+            if available_quantity < food_item.quantity_needed_for_distribution(num_refugees):
                 raise ValueError(f"Not enough {food_item.name} in stock.")
             # Release food from inventory
-            inventory.release_food(food_item, food_item.quantity_needed_for_distribution(len(self.refugees_list)))
+            inventory.release_food(food_item, food_item.quantity_needed_for_distribution(num_refugees))
         # Record the distribution
         inventory.record_distribution(self)
 
@@ -248,6 +249,15 @@ class Inventory:
                     food_totals[food_name] = quantity_available
             return food_totals
 
+    def get_total_refugees(self):
+        """
+        get total refugees, loopoing through refugee objects for their family_sizes
+        """
+        total_refugees = 0
+        for refugee in self.refugees_list:
+                total_refugees += refugee.family_size  # Adding family size of each refugee
+        return total_refugees
+    
     def release_food(self, food_item, quantity_needed):
         """Reduces the quantity of a specific food item in stock."""
         for supply in self.supplies_list:
@@ -343,3 +353,6 @@ print(f"Donation details: {donation_details}")
 # Print the distribution history (for refugee1)
 for dist in inventory.distribution_list:
     print(f"Distribution ID: {dist.id}, Date: {dist.release_date}, Refugees: {[refugee.name for refugee in dist.refugees_list]}")
+
+#getting available stock for rice
+print(f"Quantity of {food_oil.name} left is: {inventory.get_stock_count(food_oil)}")
