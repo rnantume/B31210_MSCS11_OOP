@@ -106,6 +106,10 @@ class Food:
         """Returns food details."""
         unit_qty = self.unit.get_unit_cap()
         return f"Food ID: {self.id}, Food Name: {self.name}, Unit of Release: {unit_qty}"
+    
+    def quantity_needed_for_distribution(self, num_refugees):
+        """Calculates the total quantity needed of a particulat food based on the number of refugees."""
+        return self.unit.get_unit_cap() * num_refugees
          
 class Supply:
     id = ""
@@ -203,10 +207,10 @@ class Distribution:
         # Ensure enough stock is available in the inventory
         for food_item in self.food_list:
             available_quantity = inventory.get_stock_count(food_item)
-            if available_quantity < food_item.quantity_needed():
+            if available_quantity < food_item.quantity_needed_for_distribution(len(self.refugees_list)):
                 raise ValueError(f"Not enough {food_item.name} in stock.")
             # Release food from inventory
-            inventory.release_food(food_item, food_item.quantity_needed())
+            inventory.release_food(food_item, food_item.quantity_needed_for_distribution(len(self.refugees_list)))
         # Record the distribution
         inventory.record_distribution(self)
 
@@ -222,31 +226,27 @@ class Inventory:
         """Displays all food items in stock."""
         return {supply.food_item.name: supply.quantity_available for supply in self.supplies_list}
   
-    def get_stock_count(self, food_item):
-        #Returns the available quantity of a specific food item.
-        for supply in self.supplies_list:
-            if supply.food_item.name == food_item.name:
-                return supply.get_quantity_available()
-        return 0
-
-    def get_stock_count(self):
+    def get_stock_count(self, food_item=None):
         """
-        Returns a dictionary with total available quantity for each food type.
+        Returns the total quantity available for a specific food item if passed,
+        or returns a dictionary with total available quantity for all food items.
         """
-        food_totals = {}  # Dictionary to hold the total quantities for each food type
-
-         # Iterate through each supply in the supplies list
-        for supply in self.supplies_list:
-            food_name = supply.food_item.name  # Get the name of the food item
-            quantity_available = supply.get_quantity_available()  # Get the available quantity of the supply
-        
-            # Add the quantity to the corresponding food type in the dictionary
-            if food_name in food_totals:
-                food_totals[food_name] += quantity_available  # If food already exists, add to the total
-            else:
-                food_totals[food_name] = quantity_available  # If food doesn't exist, set initial value
-    
-        return food_totals  # Return the dictionary with food totals
+        if food_item:
+            for supply in self.supplies_list:
+                if supply.food_item.name == food_item.name:
+                    return supply.get_quantity_available()
+            return 0
+        else:
+            # Return dictionary for all food items
+            food_totals = {}
+            for supply in self.supplies_list:
+                food_name = supply.food_item.name
+                quantity_available = supply.get_quantity_available()
+                if food_name in food_totals:
+                    food_totals[food_name] += quantity_available
+                else:
+                    food_totals[food_name] = quantity_available
+            return food_totals
 
     def release_food(self, food_item, quantity_needed):
         """Reduces the quantity of a specific food item in stock."""
@@ -257,3 +257,89 @@ class Inventory:
     def record_distribution(self, distribution):
         """Records the distribution event."""
         self.distribution_list.append(distribution)
+
+# Creating units of food per family member
+unit_rice = Unit("Rice", 6)
+unit_beans = Unit("Beans", 2)
+unit_oil = Unit("Oil", 1) 
+
+# Create food items with their respective units
+food_rice = Food("Rice", unit_rice)
+food_beans = Food("Beans", unit_beans)
+food_oil = Food("Oil", unit_oil)
+
+# Create donors and refugees
+donor1 = Donor("Kijjo Joe", "23232323", "kampala", _is_organisation=False)
+donor2 = Donor("Samuel Co. Ltd", "11414169", "wakiso", _is_organisation=True)
+
+refugee1 = Refugee("Soma Family", "444444444", "Nakivale Camp", 5, "Congo")
+refugee2 = Refugee("Tamu Family", "333333333", "Nakivale Camp", 3, "Congo")
+refugee3 = Refugee("Goma family", "222222222", "Nakivale Camp", 5, "Congo")
+refugee4 = Refugee("Kenge family", "111111111", "Nakivale Camp", 3, "Somalia")
+
+# Create an inventory system
+inventory = Inventory()
+
+# Create supplies 
+supply_rice1 = Supply(food_rice, 100, datetime.datetime(2025, 1, 1))  
+supply_beans1 = Supply(food_beans, 50, datetime.datetime(2025, 6, 1))  
+supply_oil1 = Supply(food_oil, 20, datetime.datetime(2025, 6, 1))
+
+supply_rice2 = Supply(food_rice, 50, datetime.datetime(2025, 2, 1))  
+supply_beans2 = Supply(food_beans, 50, datetime.datetime(2025, 7, 1))  
+supply_oil2 = Supply(food_oil, 10, datetime.datetime(2024, 12, 15))
+
+# Create donations and add supplies to it
+donation1 = Donation(donor1, datetime.datetime.now())
+donation1.add_supply(supply_rice1)
+donation1.add_supply(supply_beans1)
+donation1.add_supply(supply_oil1)
+
+donation2 = Donation(donor2, datetime.datetime.now())
+donation2.add_supply(supply_rice2)
+donation2.add_supply(supply_beans2)
+donation2.add_supply(supply_oil2)
+
+# Add supplies to inventory
+inventory.supplies_list.append(supply_rice1)
+inventory.supplies_list.append(supply_beans1)
+inventory.supplies_list.append(supply_oil1)
+inventory.supplies_list.append(supply_beans2)
+inventory.supplies_list.append(supply_rice2)
+inventory.supplies_list.append(supply_oil2)
+
+# Add the donation to the inventory
+inventory.donation_list.append(donation1)
+inventory.donation_list.append(donation2)
+
+# Create a distribution event
+distribution1 = Distribution(datetime.datetime.now(), [refugee1], [food_rice, food_beans, food_oil])
+distribution2 = Distribution(datetime.datetime.now(), [refugee2], [food_rice, food_beans, food_oil])
+distribution3 = Distribution(datetime.datetime.now(), [refugee3], [food_rice, food_beans, food_oil])
+distribution4 = Distribution(datetime.datetime.now(), [refugee4], [food_rice, food_beans, food_oil])
+
+# Create a list of all distribution events
+distributions = [distribution1, distribution2, distribution3, distribution4]
+
+# Loop through each distribution event and distribute food
+for distribution in distributions:
+    try:
+        distribution.distribute(inventory)
+        print(f"Distribution {distribution.id} for refugees completed successfully.")
+    except ValueError as e:
+        print(f"Distribution failed for {distribution.id}: {e}")
+
+# Record each distribution event in the inventory
+for distribution in distributions:
+    inventory.record_distribution(distribution)
+
+# Check the remaining stock after all distributions
+print("Stock after distributions:", inventory.get_stock_count())
+
+# Print the donation details
+donation_details = donation1.get_donation()
+print(f"Donation details: {donation_details}")
+
+# Print the distribution history (for refugee1)
+for dist in inventory.distribution_list:
+    print(f"Distribution ID: {dist.id}, Date: {dist.release_date}, Refugees: {[refugee.name for refugee in dist.refugees_list]}")
