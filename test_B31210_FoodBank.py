@@ -1,9 +1,9 @@
-# Unit tests for B31210_FoodBankManager.py
+# Unit tests for B31210_FoodBank.py
 
 import unittest
 import datetime
 import uuid
-from B31210_FoodBankManager import Person, Refugee, Donor, Unit, Food, Supply, Donation, Distribution, Inventory
+from B31210_FoodBank import Person, Refugee, Donor, Unit, Food, Supply, Donation, Distribution, Inventory
 
 class TestPerson(unittest.TestCase):
     def setUp(self):
