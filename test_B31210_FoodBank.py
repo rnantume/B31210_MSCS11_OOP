@@ -91,6 +91,72 @@ class TestFoodandUnitClasses(unittest.TestCase):
         expected = f"Food ID: {self.food.id}, Food Name: Rice, Unit of Release: 10"
         self.assertEqual(self.food.get_details(), expected)
 
+class TestFoodBank(unittest.TestCase):
+
+    def setUp(self):
+        # Set up common objects for testing
+        self.unit = Unit("Rice", 5)
+        self.food = Food("Rice", self.unit)
+        self.donor = Donor("Samuel Co. Ltd", "11414169", "Wakiso", _is_organisation=True)
+        self.refugee = Refugee("Deug Sutan", "0789562010", "Nakivale Camp", 3, "South Sudan")
+        self.supply = Supply(self.food, 100, datetime.datetime(2025, 12, 31))
+        self.donation = Donation(self.donor, datetime.datetime.now(), [self.supply])
+        self.inventory = Inventory()
+
+    def test_supply_initialization(self):
+        self.assertIsInstance(self.supply, Supply)
+        self.assertEqual(self.supply.quantity, 100)
+        self.assertEqual(self.supply.get_quantity_available(), 100)
+
+    def test_donation_initialization(self):
+        self.assertIsInstance(self.donation, Donation)
+        self.assertEqual(len(self.donation.supply_list), 1)
+
+    def test_inventory_initialization(self):
+        self.assertIsInstance(self.inventory, Inventory)
+        self.assertEqual(len(self.inventory.supplies_list), 0)
+
+    def test_inventory_add_refugee(self):
+        self.inventory.add_refugee(self.refugee)
+        self.assertEqual(len(self.inventory.refugees_list), 1)
+
+    def test_inventory_record_donation(self):
+        self.inventory.record_donation(self.donation)
+        self.assertEqual(len(self.inventory.donation_list), 1)
+        self.assertEqual(len(self.inventory.supplies_list), 1)
+
+    def test_distribution_initialization(self):
+        distribution = Distribution(datetime.datetime.now(), self.inventory)
+        self.assertIsInstance(distribution, Distribution)
+        self.assertEqual(len(distribution.refugees_list), 0)
+
+    def test_distribution_add_food(self):
+        distribution = Distribution(datetime.datetime.now(), self.inventory)
+        distribution.add_food(self.food)
+        self.assertEqual(len(distribution.food_list), 1)
+
+    def test_distribution_add_refugee(self):
+        distribution = Distribution(datetime.datetime.now(), self.inventory)
+        distribution.add_refugee(self.refugee)
+        self.assertEqual(len(distribution.refugees_list), 1)
+
+    def test_donation_add_supply(self):
+        donation = Donation(self.donor, datetime.datetime.now())
+        donation.add_supply(self.supply)
+        self.assertEqual(len(donation.supply_list), 1)
+
+    def test_invalid_donor_initialization(self):
+        with self.assertRaises(TypeError):
+            self.inventory.add_donor("Not a Donor")  # Trying to add a non-Donor object
+
+    def test_food_quantity_needed_for_distribution(self):
+        quantity_needed = self.food.quantity_needed_for_distribution(2)  # 2 refugees objects
+        self.assertEqual(quantity_needed, 10)  # 5 units per family member * 2 refugee families
+
+    def test_invalid_supply_initialization(self):
+        with self.assertRaises(TypeError):
+            Supply("Not a Food", 100, datetime.datetime(2025, 12, 31)) #food_item must be an instance of food.
+
 
 if __name__ == '__main__':
     unittest.main()
