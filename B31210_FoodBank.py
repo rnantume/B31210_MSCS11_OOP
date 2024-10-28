@@ -373,7 +373,8 @@ class Inventory:
         return donor_donations
     
     def record_donation(self, donation):
-        """Records a new donation and adds it to the donation list."""
+        """Records a new donation and adds it to the donation list
+          as well its supplies appended the supplies_list."""
         if not isinstance(donation, Donation):
             raise TypeError("The parameter 'donation' must be of type 'Donation'")
         
@@ -384,6 +385,12 @@ class Inventory:
 
         self.donation_list.append(donation)
         print(f"Donation by {donation.donor.get_name()} has been recorded.")
+
+        # Append each supply to the supplies_list
+        for supply in donation.supply_list:
+            self.supplies_list.append(supply)
+        
+        print(f"Supplies from donation added to inventory.")
 
 
 

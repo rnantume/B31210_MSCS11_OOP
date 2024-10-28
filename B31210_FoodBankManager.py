@@ -177,13 +177,13 @@ class FoodManager:
         self.donation2.add_supply(self.supply_beans2)
         self.donation2.add_supply(self.supply_matooke2)
         print(f"{self.donation2.get_donation()}")
-        print("__________________")
-
+        
     def record_donations(self):
         print("Donations Recorded-------------------------------------------")
         self.inventory.record_donation(self.donation1)
         self.inventory.record_donation(self.donation2)
         self.inventory.record_donation(self.donation2)
+        print(f"View All Supplies: {self.inventory.supplies_list}")
 
 try:
    user_food_manager = FoodManager()
