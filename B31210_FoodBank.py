@@ -48,11 +48,23 @@ class Refugee(Person):
         super().__init__(_name, _contact, _address)
         self.family_size = _family_size
         self.origin_country = _origin_country
+        self.food_received = {}  # Dictionary to store food items and quantities
 
     def get_details(self):
         _details = super().get_details()
         _details += f", Family size: {self.family_size}, Origin Country: {self.origin_country}"
         return _details
+
+    def receive_food(self, food_item, quantity):
+        """Records the food item received by the refugee."""
+        if food_item.name in self.food_received:
+            self.food_received[food_item.name] += quantity
+        else:
+            self.food_received[food_item.name] = quantity
+
+    def get_food_received(self):
+        """Returns a string representation of received food items and quantities."""
+        return ', '.join([f"{item}: {quantity}" for item, quantity in self.food_received.items()])
 
 class Unit:
     """
@@ -69,7 +81,7 @@ class Unit:
         self.name = _name
         self.quantity_per_family_member = _quantity_per_family_member
     
-    #def add_to_defined_units()(self):
+    #def add_to_defined_units(self):
     #    return self.name
     
     def get_unit_cap(self):
@@ -163,12 +175,6 @@ class Donation:
         self.donation_date = _donation_date
         self.supply_list = _supply_list if _supply_list is not None else []
         
-    def add_donor(self, _donor):
-        """adds new donor"""
-        if not isinstance(_donor, Donor):
-            raise TypeError("variable '_donor' must be of type 'Donor'")
-        self.donor = _donor
-
     def add_supply(self, _supply):
         """adds a supply to a supply list of a donation"""
         if not isinstance(_supply, Supply):
@@ -187,33 +193,53 @@ class Donation:
         }
 
 class Distribution:
-    def __init__(self, release_date, refugees_list=None, food_list=None):
+    def __init__(self, release_date, inventory, food_list=None):
         self.id = str(uuid.uuid1())
         self.release_date = release_date
-        self.refugees_list = refugees_list if refugees_list is not None else []
+        self.inventory = inventory  # Inventory instance refereced
         self.food_list = food_list if food_list is not None else []
 
+        # Initialize the refugees_list with existing refugees from the inventory
+        self.refugees_list = list(self.inventory.refugees_list)
+
     def add_refugee(self, refugee):
-        """Adds refugee to the list of those receiving food."""
-        if refugee not in self.refugees_list:
-            self.refugees_list.append(refugee)
+        """Adds refugee directly to inventory and distribution lists, if not already present."""
+        if not isinstance(refugee, Refugee):
+            raise TypeError("variable 'refugee' must be of type 'Refugee'")
+        
+        # Check if the refugee is already in the distribution's refugee list
+        if any(existing_refugee.id == refugee.id for existing_refugee in self.refugees_list):
+            print(f"Refugee {refugee.get_name()} is already in the distribution list.")
+        else:
+            self.refugees_list.append(refugee)  # Add new refugee
+            self.inventory.add_refugee(refugee)  # Optionally add to inventory too
+            print(f"Refugee {refugee.get_name()} has been added to the distribution list.")
+        
+        self.inventory.add_refugee(refugee)
 
     def add_food(self, food_item):
         """Adds food to the distribution list."""
         self.food_list.append(food_item)
 
-    def distribute(self, inventory):
+    def distribute(self):
         """Distributes food and updates inventory."""
         # Ensure enough stock is available in the inventory
         for food_item in self.food_list:
-            num_refugees = inventory.get_total_refugees()
-            available_quantity = inventory.get_stock_count(food_item)
+            num_refugees = self.inventory.get_total_refugees() #gets total refugees factoring in family size
+            available_quantity = self.inventory.get_stock_count(food_item)
             if available_quantity < food_item.quantity_needed_for_distribution(num_refugees):
                 raise ValueError(f"Not enough {food_item.name} in stock.")
+            
+            # Distribute food to each refugee
+            for refugee in self.refugees_list:
+                refugee_qty = refugee.family_size * food_item.unit.get_unit_cap()
+                refugee.receive_food(food_item, refugee_qty) 
+
             # Release food from inventory
-            inventory.release_food(food_item, food_item.quantity_needed_for_distribution(num_refugees))
+            self.inventory.release_food(food_item, food_item.quantity_needed_for_distribution(num_refugees))
+            
         # Record the distribution
-        inventory.record_distribution(self)
+        self.inventory.record_distribution(self)
 
 class Inventory:
     def __init__(self):
@@ -249,6 +275,25 @@ class Inventory:
                     food_totals[food_name] = quantity_available
             return food_totals
 
+    def notify_stock_levels(self):
+        """
+        Checks stock levels of all items.
+        Notifies if any item has less than 50 units available.
+        """
+        low_stock_items = []
+        stock_counts = self.get_stock_count()  # returns a dictionary of all items and their totals
+
+        for food_name, quantity_available in stock_counts.items():
+            if quantity_available < 50:
+                low_stock_items.append(f"{food_name}: {quantity_available} units available")
+
+        if low_stock_items:
+            print("Low stock alert! The following items have less than 50 units available:")
+            for item in low_stock_items:
+                print(item)
+        else:
+            print("All items are have enough stock.")
+
     def get_total_refugees(self):
         """
         get total refugees, loopoing through refugee objects for their family_sizes
@@ -257,102 +302,91 @@ class Inventory:
         for refugee in self.refugees_list:
                 total_refugees += refugee.family_size  # Adding family size of each refugee
         return total_refugees
-    
+
     def release_food(self, food_item, quantity_needed):
         """Reduces the quantity of a specific food item in stock."""
+        quantity_remaining = quantity_needed  # Keep track of how much we still need to deduct
+
         for supply in self.supplies_list:
             if supply.food_item.name == food_item.name:
-                supply.update_quantity(quantity_needed)
+                available_quantity = supply.get_quantity_available()
+                
+                if available_quantity > 0:
+                    if available_quantity >= quantity_remaining:
+                        supply.update_quantity(quantity_remaining)  # Deduct the needed amount from this supply
+                        quantity_remaining = 0  # All needed quantity has been deducted
+                        break  # Exit loop since we've satisfied the requirement
+                    else:
+                        supply.update_quantity(available_quantity)  # Deduct all available quantity
+                        quantity_remaining -= available_quantity  # Reduce the remaining quantity needed
+
+        if quantity_remaining > 0:
+            raise ValueError(f"Not enough {food_item.name} in stock to fulfill the request. Remaining: {quantity_remaining}")
+        
+    def add_donor(self, _donor):
+        """
+        Adds a new donor to donors_list if not already added.
+        """
+        if not isinstance(_donor, Donor):
+            raise TypeError("variable '_donor' must be of type 'Donor'")
+        
+        if _donor not in self.donors_list:
+            self.donors_list.append(_donor)
+            print(f"Donor {_donor.get_name()} has been added.")
+        else:
+            print(f"Donor {_donor.get_name()} is already in the list.")
+
+    def add_refugee(self, refugee):
+        """Adds a refugee to the inventory's refugee list, ensuring no duplication."""
+        if not isinstance(refugee, Refugee):
+            raise TypeError("variable 'refugee' must be of type 'Refugee'")
+        
+        # Ensures the refugee is not already in the list by checking their unique id
+        if all(existing_refugee.id != refugee.id for existing_refugee in self.refugees_list):
+            self.refugees_list.append(refugee)
+            print(f"Refugee {refugee.get_name()} has been added to the refugees list.")
+        else:
+            print(f"Refugee {refugee.get_name()} is already in the refugees list.")
 
     def record_distribution(self, distribution):
         """Records the distribution event."""
         self.distribution_list.append(distribution)
 
-# Creating units of food per family member
-unit_rice = Unit("Rice", 6)
-unit_beans = Unit("Beans", 2)
-unit_oil = Unit("Oil", 1) 
+    def get_all_donations(self):
+        """Returns a list of all donations with their details."""
+        all_donations = []
+        for donation in self.donation_list:
+            donation_details = donation.get_donation()  # Assuming get_donation() retrieves relevant details
+            all_donations.append(donation_details)
+        return all_donations
 
-# Create food items with their respective units
-food_rice = Food("Rice", unit_rice)
-food_beans = Food("Beans", unit_beans)
-food_oil = Food("Oil", unit_oil)
+    def get_donations_by_donor(self, donor):
+        """Returns a list of donations made by a specific donor."""
+        if not isinstance(donor, Donor):
+            raise TypeError("The parameter 'donor' must be of type 'Donor'")
+        
+        donor_donations = []
+        for donation in self.donation_list:
+            if donation.donor.id == donor.id:  # Check if the donation is made by the specified donor
+                donation_details = donation.get_donation()
+                donor_donations.append(donation_details)
+        return donor_donations
+    
+    def record_donation(self, donation):
+        """Records a new donation and adds it to the donation list."""
+        if not isinstance(donation, Donation):
+            raise TypeError("The parameter 'donation' must be of type 'Donation'")
+        
+        # Check for duplicate donation by ID
+        if any(existing_donation.id == donation.id for existing_donation in self.donation_list):
+            print(f"Donation with ID {donation.id} already exists and will not be added.")
+            return  # Exit the method without adding
 
-# Create donors and refugees
-donor1 = Donor("Kijjo Joe", "23232323", "kampala", _is_organisation=False)
-donor2 = Donor("Samuel Co. Ltd", "11414169", "wakiso", _is_organisation=True)
+        self.donation_list.append(donation)
+        print(f"Donation by {donation.donor.get_name()} has been recorded.")
 
-refugee1 = Refugee("Soma Family", "444444444", "Nakivale Camp", 5, "Congo")
-refugee2 = Refugee("Tamu Family", "333333333", "Nakivale Camp", 3, "Congo")
-refugee3 = Refugee("Goma family", "222222222", "Nakivale Camp", 5, "Congo")
-refugee4 = Refugee("Kenge family", "111111111", "Nakivale Camp", 3, "Somalia")
 
-# Create an inventory system
-inventory = Inventory()
 
-# Create supplies 
-supply_rice1 = Supply(food_rice, 100, datetime.datetime(2025, 1, 1))  
-supply_beans1 = Supply(food_beans, 50, datetime.datetime(2025, 6, 1))  
-supply_oil1 = Supply(food_oil, 20, datetime.datetime(2025, 6, 1))
 
-supply_rice2 = Supply(food_rice, 50, datetime.datetime(2025, 2, 1))  
-supply_beans2 = Supply(food_beans, 50, datetime.datetime(2025, 7, 1))  
-supply_oil2 = Supply(food_oil, 10, datetime.datetime(2024, 12, 15))
 
-# Create donations and add supplies to it
-donation1 = Donation(donor1, datetime.datetime.now())
-donation1.add_supply(supply_rice1)
-donation1.add_supply(supply_beans1)
-donation1.add_supply(supply_oil1)
 
-donation2 = Donation(donor2, datetime.datetime.now())
-donation2.add_supply(supply_rice2)
-donation2.add_supply(supply_beans2)
-donation2.add_supply(supply_oil2)
-
-# Add supplies to inventory
-inventory.supplies_list.append(supply_rice1)
-inventory.supplies_list.append(supply_beans1)
-inventory.supplies_list.append(supply_oil1)
-inventory.supplies_list.append(supply_beans2)
-inventory.supplies_list.append(supply_rice2)
-inventory.supplies_list.append(supply_oil2)
-
-# Add the donation to the inventory
-inventory.donation_list.append(donation1)
-inventory.donation_list.append(donation2)
-
-# Create a distribution event
-distribution1 = Distribution(datetime.datetime.now(), [refugee1], [food_rice, food_beans, food_oil])
-distribution2 = Distribution(datetime.datetime.now(), [refugee2], [food_rice, food_beans, food_oil])
-distribution3 = Distribution(datetime.datetime.now(), [refugee3], [food_rice, food_beans, food_oil])
-distribution4 = Distribution(datetime.datetime.now(), [refugee4], [food_rice, food_beans, food_oil])
-
-# Create a list of all distribution events
-distributions = [distribution1, distribution2, distribution3, distribution4]
-
-# Loop through each distribution event and distribute food
-for distribution in distributions:
-    try:
-        distribution.distribute(inventory)
-        print(f"Distribution {distribution.id} for refugees completed successfully.")
-    except ValueError as e:
-        print(f"Distribution failed for {distribution.id}: {e}")
-
-# Record each distribution event in the inventory
-for distribution in distributions:
-    inventory.record_distribution(distribution)
-
-# Check the remaining stock after all distributions
-print("Stock after distributions:", inventory.get_stock_count())
-
-# Print the donation details
-donation_details = donation1.get_donation()
-print(f"Donation details: {donation_details}")
-
-# Print the distribution history (for refugee1)
-for dist in inventory.distribution_list:
-    print(f"Distribution ID: {dist.id}, Date: {dist.release_date}, Refugees: {[refugee.name for refugee in dist.refugees_list]}")
-
-#getting available stock for rice
-print(f"Quantity of {food_oil.name} left is: {inventory.get_stock_count(food_oil)}")
