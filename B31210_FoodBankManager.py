@@ -1,145 +1,73 @@
-import unittest
 import datetime
-import uuid
 from B31210_FoodBank import Person, Refugee, Donor, Unit, Food, Supply, Donation, Distribution, Inventory
 
 class FoodManager:
-    """"""
-    # Create an inventory system
-    inventory = Inventory()
+    def __init__(self):
+        # Initialize the inventory system
+        self.inventory = Inventory()
 
-    # Creating units and respective quantity per family head
-    unit_rice = Unit("Rice", 6)
-    unit_beans = Unit("Beans", 2)
-    unit_oil = Unit("Oil", 1) 
-    unit_matooke = Unit("Matooke", 1)
-    
-    # Create food items with their respective units
-    food_rice = Food("Rice", unit_rice)
-    food_beans = Food("Beans", unit_beans)
-    food_oil = Food("Oil", unit_oil)
-    food_matooke = Food("Matooke", unit_matooke)
+        # Creating units and respective quantity per family head
+        self.unit_rice = Unit("Rice", 6)
+        self.unit_beans = Unit("Beans", 2)
+        self.unit_oil = Unit("Oil", 1) 
+        self.unit_matooke = Unit("Matooke", 1)
 
-    # Create donors
-    donor1 = Donor("Kijjo Joe", "23232323", "kampala", _is_organisation=False)
-    donor2 = Donor("Samuel Co. Ltd", "11414169", "wakiso", _is_organisation=True)
-    donor3 = Donor("Kato Vincent", "07014596300", "Nairobi Kenya", _is_organisation=False)
+        # Create food items with their respective units
+        self.food_rice = Food("Rice", self.unit_rice)
+        self.food_beans = Food("Beans", self.unit_beans)
+        self.food_oil = Food("Oil", self.unit_oil)
+        self.food_matooke = Food("Matooke", self.unit_matooke)
 
-    # Create refugees
-    refugee1 = Refugee("Soma Family", "444444444", "Nakivale Camp", 5, "Congo")
-    refugee2 = Refugee("Tamu Family", "333333333", "Nakivale Camp", 3, "Congo")
-    refugee3 = Refugee("Goma family", "222222222", "Nakivale Camp", 5, "Burundi")
-    refugee4 = Refugee("Kenge family", "111111111", "Nakivale Camp", 3, "Somalia")
-    refugee5 = Refugee("Deug Sutan", "0789562010", "Nakivale Camp", 3, "South Sudan")
+        # Create donors
+        self.donor1 = Donor("Kijjo Joe", "23232323", "Kampala", _is_organisation=False)
+        self.donor2 = Donor("Samuel Co. Ltd", "11414169", "Wakiso", _is_organisation=True)
 
-    # Create supplies objects
-    supply_rice1 = Supply(food_rice, 100, datetime.datetime(2025, 1, 1))  
-    supply_beans1 = Supply(food_beans, 50, datetime.datetime(2025, 6, 1))  
-    supply_oil1 = Supply(food_oil, 20, datetime.datetime(2025, 6, 1))
+        # Create refugees
+        self.refugees = [
+            Refugee("Soma Family", "444444444", "Nakivale Camp", 5, "Congo"),
+            Refugee("Tamu Family", "333333333", "Nakivale Camp", 3, "Congo"),
+            Refugee("Goma Family", "222222222", "Nakivale Camp", 5, "Burundi"),
+            Refugee("Kenge Family", "111111111", "Nakivale Camp", 3, "Somalia"),
+            Refugee("Deug Sutan", "0789562010", "Nakivale Camp", 3, "South Sudan")
+        ]
 
-    supply_rice2 = Supply(food_rice, 50, datetime.datetime(2025, 2, 1))  
-    supply_beans2 = Supply(food_beans, 50, datetime.datetime(2025, 7, 1))  
-    supply_matooke2= Supply(food_matooke, 10, datetime.datetime(2024, 12, 5))
+        # Create supplies objects
+        self.supplies = [
+            Supply(self.food_rice, 100, datetime.datetime(2025, 1, 1)),
+            Supply(self.food_beans, 50, datetime.datetime(2025, 6, 1)),
+            Supply(self.food_oil, 20, datetime.datetime(2025, 6, 1)),
+            Supply(self.food_rice, 50, datetime.datetime(2025, 2, 1)),
+            Supply(self.food_beans, 50, datetime.datetime(2025, 7, 1)),
+            Supply(self.food_matooke, 10, datetime.datetime(2024, 10, 5))
+        ]
 
-    # Create donations objects
-    donation1 = Donation(donor1, datetime.datetime.now())
-    donation2 = Donation(donor2, datetime.datetime.now())
+        # Create donations objects
+        self.donation1 = Donation(self.donor1, datetime.datetime.now())
+        self.donation2 = Donation(self.donor2, datetime.datetime.now())
+        
+    def show_menu(self):
+        print("System Menu ---------------------------------------------------")
+        print("     1: Show Available Unit Types")
+        print("     2: Show Available Food Types")
+        print("     3: Add Donors")
+        print("     4: Add Refugees")
+        print("     5: Add Supplies to Donations")
+        print("     6: Record Donations")
+        print("     7: View Supplies List")
+        print("     8: Check Stock Levels")
+        print("     9: Low-Stock Alerts")
+        print("     10: Notify Expired Food Supplies") 
+        print("     11: View All Refugees")
+        print("     12: Add Refugees to inventory")
+        print("     13: Distribute Food")
+        print("     14: View all food distributions")
+        print("     15: View all Donations")
+        print("     0: Exit")
 
-    # Add supplies to inventory
-    inventory.supplies_list.append(supply_rice1)
-    inventory.supplies_list.append(supply_beans1)
-    inventory.supplies_list.append(supply_oil1)
-    inventory.supplies_list.append(supply_beans2)
-    inventory.supplies_list.append(supply_rice2)
-    inventory.supplies_list.append(supply_matooke2)
-
-    # Add the donation to the inventory
-    inventory.donation_list.append(donation1)
-    inventory.donation_list.append(donation2)
-
-    # Create a distribution event
-    distribution1 = Distribution(datetime.datetime.now(), inventory, [food_rice, food_beans, food_oil])
-    distribution2 = Distribution(datetime.datetime.now(), inventory, [food_rice, food_beans, food_oil])
-    distribution3 = Distribution(datetime.datetime.now(), inventory, [food_rice, food_beans, food_oil])
-    distribution4 = Distribution(datetime.datetime.now(), inventory, [food_rice, food_beans, food_oil])
-
-     # Add the donation to the inventory
-    inventory.donation_list.append(donation1)
-    inventory.donation_list.append(donation2)
-
-    # Create a distribution event
-    distribution1 = Distribution(datetime.datetime.now(), inventory, [food_rice, food_beans, food_oil])
-    distribution2 = Distribution(datetime.datetime.now(), inventory, [food_rice, food_beans, food_oil])
-    distribution3 = Distribution(datetime.datetime.now(), inventory, [food_rice, food_beans, food_oil])
-    distribution4 = Distribution(datetime.datetime.now(), inventory, [food_rice, food_beans, food_oil])
-
-    # Create a list of all distribution events
-    distributions = [distribution1, distribution2, distribution3, distribution4]
-
-    # Loop through each distribution event and distribute food
-    for distribution in distributions:
-        try:
-            distribution.distribute()
-            print(f"Distribution {distribution.id} for refugees completed successfully.")
-        except ValueError as e:
-            print(f"Distribution failed for {distribution.id}: {e}")
-
-    # Record each distribution event in the inventory
-    for distribution in distributions:
-        inventory.record_distribution(distribution)
-
-    # Check the remaining stock after all distributions
-    print("Stock after distributions:", inventory.get_stock_count())
-
-    # Print the donation details
-    donation_details = donation1.get_donation()
-    print(f"Donation details: {donation_details}")
-
-    # Print the distribution history
-    for dist in inventory.distribution_list:
-        print(f"Distribution ID: {dist.id}, Date: {dist.release_date}")
-        for refugee in dist.refugees_list:
-            food_info = refugee.get_food_received()
-            print(f"  Refugee: {refugee.name}, Food Received: {food_info}")
-
-    #getting available stock for rice
-    print(f"Quantity of {food_oil.name} left is: {inventory.get_stock_count(food_oil)}")
-
-    # Retrieve all donations
-    all_donations = inventory.get_all_donations()
-    for donation in all_donations:
-        print(donation)
-
-    donor_donations = inventory.get_donations_by_donor(donor1)
-    for donation in donor_donations:
-        print(donation)
-
-    def show_menu(self, _menuItem = "" ):
-        if _menuItem == "":
-            print("System Menu ---------------------------------------------------")
-            print("     1: Show Available Unit Types")
-            print("     2: Show Available Food Types")
-            print("     3: Add Donors")
-            print("     4: Add Refugees")
-            print("     5: Add Supplies to donations")
-            print("     6: Record Donations")
-            #print("     5: Donations")
-            #print("     6: Distributions")
-            #print("     7: Inventory")
-            #print("     0: Back")
-    # check inventory for stock counts,  distributions list, donations list
-    # create supply items
-    # add supplies and donors to donation/s: expiration dates of supplies are checked
-    # record donations, new donor is added to donors list, and donation objects added in the inventory
-    # add food items and refugees to a distributions
-    # distribute food according to refugee family size; new refugee can be added to the distribution list
-    # check stock levels again for reduction of food items
-    # notification for low stock levels is issued
-    #lists for donations and distributions printed
     def show_units(self):
         print("Units set ---------------------------------------------------")
-        print(self.unit_beans)
         print(self.unit_rice)
+        print(self.unit_beans)
         print(self.unit_oil)
         print(self.unit_matooke)
         print("")
@@ -155,62 +83,142 @@ class FoodManager:
         print("Donor set ---------------------------------------------------")
         self.inventory.add_donor(self.donor1)
         self.inventory.add_donor(self.donor2)
-        self.inventory.add_donor(self.donor2)
-        self.inventory.add_donor(self.donor1)
 
     def add_refugees(self):
         print("Refugee set ---------------------------------------------------")
-        self.inventory.add_refugee(self.refugee1)
-        self.inventory.add_refugee(self.refugee2)
-        self.inventory.add_refugee(self.refugee3)
-        self.inventory.add_refugee(self.refugee2)
-        print(f"------------------------")
-        print(f"Total Refugee families: {len(self.inventory.refugees_list)} with {self.inventory.get_total_refugees()} members")
-        
+        for refugee in self.refugees:
+            self.inventory.add_refugee(refugee)
+        #print(f"Total Refugee families: {len(self.inventory.refugees_list)} with {self.inventory.get_total_refugees()} members")
+
     def add_supplies_to_donations(self):
-        print("Donations and their supplies--------------------------------------")
-        self.donation1.add_supply(self.supply_rice1)
-        self.donation1.add_supply(self.supply_beans1)
-        self.donation1.add_supply(self.supply_oil1)
+        print("Adding supplies to donations-----------------------------------")
+        self.donation1.add_supply(self.supplies[0])
+        self.donation1.add_supply(self.supplies[1])
+        self.donation1.add_supply(self.supplies[2])
         print(f"{self.donation1.get_donation()}")
-        self.donation2.add_supply(self.supply_rice2)
-        self.donation2.add_supply(self.supply_beans2)
-        self.donation2.add_supply(self.supply_matooke2)
+        self.donation2.add_supply(self.supplies[3])
+        self.donation2.add_supply(self.supplies[4])
+        self.donation2.add_supply(self.supplies[5])
         print(f"{self.donation2.get_donation()}")
-        
+
     def record_donations(self):
         print("Donations Recorded-------------------------------------------")
         self.inventory.record_donation(self.donation1)
         self.inventory.record_donation(self.donation2)
-        self.inventory.record_donation(self.donation2)
-        print(f"View All Supplies: {self.inventory.supplies_list}")
 
-try:
-   user_food_manager = FoodManager()
-   user_food_manager.show_menu("")
-   while True:
-       user_menu = input()
-       if user_menu.strip() == "1":
-           user_food_manager.show_units()
-       elif user_menu.strip() == "2":
-           user_food_manager.show_fooditems() 
-       elif user_menu.strip() == "3":
-           user_food_manager.add_donors()
-       elif user_menu.strip() == "4":
-           user_food_manager.add_refugees()
-       elif user_menu.strip() == "5":
-           user_food_manager.add_supplies_to_donations()
-       elif user_menu.strip() == "6":
-           user_food_manager.record_donations()
-       elif user_menu.strip() == "7":
-           user_food_manager.show_menu("")
-       elif user_menu.strip() == "0":
-           user_food_manager.show_menu("")
-       else:
-           print("No Menu Item Selected")
-           break
-       
-except:
-    print("Exception happened, please try again --------------------------------")
-finally:
-    print("End: Food manager closed ---------------------------------------------")
+    def view_supplies(self):
+        print("Available Supplies List:")
+        for supply in self.inventory.get_supplies():
+            food_name = supply.food_item.get_food_name()
+            quantity = supply.quantity
+            expiry = supply.expiration_date.strftime('%Y-%m-%d')
+            print(f"{food_name}: {quantity} (Expires on: {expiry})")
+
+    def check_stock_levels(self):
+        print("Current Stock Levels:")
+        print(f"{self.inventory.get_stock_count()}")
+
+    def low_stock_alerts(self):
+        print(f"{self.inventory.notify_stock_levels()}")
+
+    def notify_expired_supplies(self):
+        print(f"{self.inventory.notify_expired_supplies()}")
+
+    def get_all_refugees(self):
+        print(f"{self.inventory.get_all_refugees()}")
+
+    def distribute_food(self):
+        food_items = []
+        print("Enter food items to distribute (comma-separated): ")
+        user_input = input().split(',')
+        for item in user_input:
+            food_item = item.strip()
+            if food_item == "Rice":
+                food_items.append(self.food_rice)
+            elif food_item == "Beans":
+                food_items.append(self.food_beans)
+            elif food_item == "Oil":
+                food_items.append(self.food_oil)
+            elif food_item == "Matooke":
+                food_items.append(self.food_matooke)
+
+        distribution = Distribution(datetime.datetime.now(), self.inventory, food_items)
+        try:
+            distribution.distribute()
+            self.inventory.record_distribution(distribution)
+            print(f"Distribution {distribution.id} completed successfully.")
+        except ValueError as e:
+            print(f"Distribution failed: {e}")
+
+    def get_distributions(self):
+        print(f"{self.inventory.get_distributions()}")
+
+    def add_refugee_to_distribution(self):
+        refugee_id = input("Enter Refugee ID to add to distribution: ")
+        refugee = self.inventory.get_refugee_by_id(refugee_id)
+        if refugee:
+            distribution_id = input("Enter Distribution ID to add this refugee: ")
+            distribution = self.inventory.get_distribution_by_id(distribution_id)
+            if distribution:
+                distribution.add_refugee(refugee)
+                print(f"Added {refugee.name} to distribution {distribution.id}.")
+            else:
+                print("Distribution not found.")
+        else:
+            print("Refugee not found in inventory.")
+
+    def view_donations_by_donor(self):
+        donor_item = input("Enter Donor object to view donations: ")
+        donations = self.inventory.get_donations_by_donor(donor_item)
+        if donations:
+            for donation in donations:
+                print(donation)
+        else:
+            print("No donations found for this donor.")
+
+    def get_all_donations(self):
+        print(f"{self.inventory.get_all_donations()}")
+
+# Running the application
+if __name__ == "__main__":
+    user_food_manager = FoodManager()
+    user_food_manager.show_menu()
+    while True:
+        user_menu = input("Select an option: ")
+        if user_menu.strip() == "1":
+            user_food_manager.show_units()
+        elif user_menu.strip() == "2":
+            user_food_manager.show_fooditems()
+        elif user_menu.strip() == "3":
+            user_food_manager.add_donors()
+        elif user_menu.strip() == "4":
+            user_food_manager.add_refugees()
+        elif user_menu.strip() == "5":
+            user_food_manager.add_supplies_to_donations()
+        elif user_menu.strip() == "6":
+            user_food_manager.record_donations()
+        elif user_menu.strip() == "7":
+            user_food_manager.view_supplies()
+        elif user_menu.strip() == "8":
+            user_food_manager.check_stock_levels()
+        elif user_menu.strip() == "9":
+            user_food_manager.low_stock_alerts()
+        elif user_menu.strip() == "10":
+            user_food_manager.notify_expired_supplies()
+        elif user_menu.strip() == "11":
+            user_food_manager.get_all_refugees()
+        elif user_menu.strip() == "12":
+            user_food_manager.add_refugees()
+        elif user_menu.strip() == "13":
+            user_food_manager.distribute_food()
+        elif user_menu.strip() == "14":
+            user_food_manager.get_distributions()
+        elif user_menu.strip() == "#15":
+            user_food_manager.add_refugee_to_distribution()
+        elif user_menu.strip() == "15":
+            user_food_manager.get_all_donations()
+        elif user_menu.strip() == "0":
+            print("Exiting the Food Manager application.")
+            break
+        else:
+            print("Invalid option. Please try again.")

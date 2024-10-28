@@ -122,7 +122,11 @@ class Food:
     def quantity_needed_for_distribution(self, num_refugees):
         """Calculates the total quantity needed of a particulat food based on the number of refugees."""
         return self.unit.get_unit_cap() * num_refugees
-         
+
+    def get_food_name(self):
+        """Returns the name of the food item."""
+        return self.name
+    
 class Supply:
     id = ""
     quantity = 0
@@ -249,6 +253,10 @@ class Inventory:
         self.donors_list = []
         self.refugees_list = []
 
+    def get_supplies(self):
+        """returns the list of all supplies"""
+        return self.supplies_list
+    
     def get_stock(self):
         """Displays all food items in stock."""
         return {supply.food_item.name: supply.quantity_available for supply in self.supplies_list}
@@ -294,6 +302,19 @@ class Inventory:
         else:
             print("All items are have enough stock.")
 
+    def notify_expired_supplies(self):
+        today = datetime.datetime.now()
+        expired_supplies = [supply for supply in self.supplies_list if supply.expiration_date < today]
+        if expired_supplies:
+            print("Expired Food Supplies:")
+            for supply in expired_supplies:
+                print(f"{supply.food_item.get_food_name()} (Expires on: {supply.expiration_date.strftime('%Y-%m-%d')})")
+        else:
+            print("No expired food supplies.")
+
+    def get_all_refugees(self):
+        return self.refugees_list
+
     def get_total_refugees(self):
         """
         get total refugees, loopoing through refugee objects for their family_sizes
@@ -322,7 +343,21 @@ class Inventory:
 
         if quantity_remaining > 0:
             raise ValueError(f"Not enough {food_item.name} in stock to fulfill the request. Remaining: {quantity_remaining}")
-        
+
+    def show_food_distribution(self):
+        """Displays the food distribution for each refugee."""
+        print("Food Distribution to Refugees:")
+        for refugee in self.refugees_list:
+            food_details = refugee.get_food_received()
+            print(f"Refugee: {refugee.get_name()}, Food Received: {food_details}")
+
+    def record_distribution(self, distribution):
+        """Records the distribution event."""
+        self.distribution_list.append(distribution)
+
+    def get_distributions(self):
+        return self.distribution_list
+
     def add_donor(self, _donor):
         """
         Adds a new donor to donors_list if not already added.
@@ -347,10 +382,6 @@ class Inventory:
             print(f"Refugee {refugee.get_name()} has been added to the refugees list.")
         else:
             print(f"Refugee {refugee.get_name()} is already in the refugees list.")
-
-    def record_distribution(self, distribution):
-        """Records the distribution event."""
-        self.distribution_list.append(distribution)
 
     def get_all_donations(self):
         """Returns a list of all donations with their details."""
